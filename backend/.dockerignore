@@ -1,0 +1,8 @@
+# Gradle 캐시 및 빌드 산출물은 이미지에 넣지 않고 컨테이너 빌드 단계에서 생성합니다.
+.gradle
+build
+out
+bin
+.idea
+*.iml
+.DS_Store

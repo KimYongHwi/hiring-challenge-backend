@@ -1,0 +1,530 @@
+.layout {
+  min-height: 100svh;
+  display: flex;
+  color: #111827;
+  background-color: #f9fafb;
+  /* 자식의 폼 컨트롤까지 라이트 스킴으로 그리도록 한 번 더 고정 */
+  color-scheme: light;
+}
+
+/*
+ * index.css 의 h1–h2 가 `color: var(--text-h)` 를 쓰는데, OS 다크 모드면 --text-h 가 밝은 회색으로 바뀝니다.
+ * 본 앱은 라이트 UI 고정이라 제목·소제목은 항상 진한 톤으로 맞춥니다.
+ */
+.layout h1,
+.layout h2,
+.layout h3,
+.layout h4 {
+  color: #111827;
+}
+
+.lnb {
+  width: 240px;
+  min-width: 240px;
+  padding: 24px 16px;
+  border-right: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.lnbTitle {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.lnbMenuList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lnbMenuList li + li {
+  margin-top: 8px;
+}
+
+.lnbMenuButton {
+  display: block;
+  width: 100%;
+  height: 42px;
+  line-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.lnbMenuButton:hover {
+  background-color: #f3f4f6;
+}
+
+.lnbMenuButtonActive {
+  border-color: #4f46e5;
+  background-color: #eef2ff;
+  color: #3730a3;
+}
+
+.content {
+  flex: 1;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.contentPanel {
+  max-width: 720px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #ffffff;
+  text-align: left;
+}
+
+.contentPanel h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.contentPanel h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.panelHeader h2 {
+  margin: 0 0 6px;
+}
+
+.panelHeaderActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1040px;
+}
+
+.pageStack .contentPanel {
+  max-width: none;
+}
+
+.pageLead {
+  margin: 0 0 16px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+/*
+ * 목록 테이블: fixed + colgroup 으로 모든 열 폭을 명시하고, 품목명/주소 열만 폭을 비워
+ * 남는 폭을 흡수(flex-grow 와 유사)합니다. 일부 열만 폭을 주고 나머지를 빈 col 로 두면
+ * 열 붕괴 버그가 나므로 반드시 고정 열은 전부 숫자(rem)로 박습니다.
+ */
+.dataTable.dataTableInteractive {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.dataTableInteractive col.colListId {
+  width: 3.5rem;
+}
+
+/* 폭 미지정: fixed 테이블에서 나머지 폭을 이 열이 가져가는 패턴(flex-grow 와 유사). min-width 는 td.cellGrow 에 둡니다. */
+.dataTableInteractive col.colListGrow {
+  width: auto;
+}
+
+.dataTableInteractive col.colListUnit {
+  width: 4.5rem;
+}
+
+.dataTableInteractive col.colListOrderer {
+  width: 7rem;
+}
+
+.dataTableInteractive col.colListPhone {
+  width: 8.5rem;
+}
+
+.dataTableInteractive col.colListCount {
+  width: 4.75rem;
+}
+
+.dataTableInteractive col.colListNum {
+  width: 5.75rem;
+}
+
+.dataTableInteractive col.colListActions {
+  width: 9rem;
+  min-width: 9rem;
+}
+
+.dataTableInteractive th:first-child,
+.dataTableInteractive td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* cellMono 기본 word-break: break-all 은 말줄임과 함께 쓸 수 없어 목록 첫 열에서만 끕니다. */
+.dataTableInteractive td:first-child.cellMono {
+  word-break: normal;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.dataTable thead th {
+  background: #f9fafb;
+  text-align: left;
+  font-weight: 600;
+}
+
+/* 목록 테이블 헤더만 전부 가운데 정렬 (본문 숫자 열은 .cellNum 으로 우측 유지) */
+.dataTable.dataTableInteractive thead th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dataTable.dataTableInteractive thead th.cellNum {
+  text-align: center;
+}
+
+.dataTable.dataTableInteractive thead th.cellActions {
+  text-align: center;
+}
+
+/* 품목명·주소 등 가변 열: 넓은 공간 활용, 넘치면 말줄임 */
+.dataTableInteractive th.cellGrow,
+.dataTableInteractive td.cellGrow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dataTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dataTableInteractive tbody tr.dataTableClickRow {
+  cursor: pointer;
+}
+
+.dataTableInteractive tbody tr.dataTableClickRow:hover {
+  background-color: #f9fafb;
+}
+
+.dataTableInteractive tbody tr.dataTableClickRow:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: -2px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px 16px;
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+
+.detailGrid dt {
+  margin: 0;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.detailGrid dd {
+  margin: 0;
+  color: #111827;
+}
+
+.detailSubheading {
+  margin: 20px 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cellNum {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cellActions {
+  text-align: right;
+  white-space: nowrap;
+  /* width: 1% 는 fixed 레이아웃에서 다른 열 폭을 빼앗기 쉬워 auto 테이블에서는 쓰지 않습니다. */
+  min-width: 8.75rem;
+}
+
+/* 작업 열: td는 table-cell을 유지해야 thead와 열이 맞습니다. */
+.dataTable td.cellActions {
+  vertical-align: middle;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.rowActions .btnInline {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.btnInline {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btnInline.btnSecondary {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.btnInline.btnGhost {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+.btnInline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cellMono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pagerInfo {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.btnPrimary,
+.btnSecondary,
+.btnGhost {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btnPrimary {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.btnSecondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnGhost {
+  background: transparent;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 12px 0 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldSpan2 {
+  grid-column: span 2;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.field input,
+.field select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  /* WebKit 등에서 시스템 다크와 무관하게 라이트 필드 유지 */
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.field select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.formActions {
+  margin-top: 12px;
+}
+
+.formError {
+  color: #b91c1c;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.formOk {
+  color: #166534;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.linesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.linesHeader h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.lineList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.lineRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1.3fr) minmax(0, 0.5fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.lineIndex {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 860px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldSpan2 {
+    grid-column: auto;
+  }
+
+  .lineRow {
+    grid-template-columns: 1fr;
+  }
+
+  .lineIndex {
+    padding-bottom: 0;
+  }
+}

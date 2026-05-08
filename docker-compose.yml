@@ -1,0 +1,39 @@
+# 로컬 과제 환경: Spring Boot API + PostgreSQL 을 한 스택으로 기동합니다.
+# 사용법: 저장소 루트에서 `docker compose up --build`
+#
+# - db: PostgreSQL 16 (과제용 로컬 DB)
+# - api: 백엔드 컨테이너 (SPRING_PROFILES_ACTIVE=docker → jdbc:postgresql://db:5432/hiring)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hiring
+      POSTGRES_PASSWORD: hiring
+      POSTGRES_DB: hiring
+    ports:
+      # 호스트에서 psql, DBeaver 등으로 붙을 때 사용
+      - "5432:5432"
+    volumes:
+      # 컨테이너 재기동 후에도 스키마/데이터 유지 (볼륨 삭제 시 초기화: docker compose down -v)
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hiring -d hiring"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # 컨테이너 네트워크에서 DB 호스트명은 서비스 이름 `db`와 일치해야 합니다.
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

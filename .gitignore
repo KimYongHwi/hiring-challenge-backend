@@ -1,0 +1,10 @@
+# frontend
+frontend/node_modules
+frontend/dist
+
+# backend
+backend/.gradle
+backend/build
+
+# common
+.DS_Store
