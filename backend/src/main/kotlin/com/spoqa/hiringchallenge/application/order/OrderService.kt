@@ -11,8 +11,11 @@ import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderCommand
 import com.spoqa.hiringchallenge.application.order.mapper.toDetailResult
 import com.spoqa.hiringchallenge.application.order.mapper.toOrder
 import com.spoqa.hiringchallenge.application.order.mapper.toOrderLine
+import com.spoqa.hiringchallenge.application.order.mapper.toPageResult
 import com.spoqa.hiringchallenge.application.order.mapper.toProductId
+import com.spoqa.hiringchallenge.domain.order.exception.OrderNotFoundException
 import com.spoqa.hiringchallenge.domain.order.OrderRepository
+import com.spoqa.hiringchallenge.domain.order.vo.OrderId
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
 import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 
@@ -35,11 +38,20 @@ class OrderService(
     }
 
     override fun findOrder(query: FindOrderQuery): OrderDetailResult {
-        throw UnsupportedOperationException("주문 단건 조회 usecase는 아직 구현되지 않았습니다.")
+        val orderId = OrderId(query.orderId)
+        val order = orderRepository.findById(orderId)
+            ?: throw OrderNotFoundException(orderId)
+
+        return order.toDetailResult()
     }
 
     override fun findOrders(query: FindOrdersQuery): PageResult<OrderListItemResult> {
-        throw UnsupportedOperationException("주문 목록 조회 usecase는 아직 구현되지 않았습니다.")
+        val orderPage = orderRepository.findAll(
+            page = query.page,
+            size = query.size,
+        )
+
+        return orderPage.toPageResult()
     }
 
     override fun updateOrder(command: UpdateOrderCommand): OrderDetailResult {
