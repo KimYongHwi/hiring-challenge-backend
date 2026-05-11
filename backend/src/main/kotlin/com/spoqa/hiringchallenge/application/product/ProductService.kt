@@ -10,9 +10,8 @@ import com.spoqa.hiringchallenge.application.product.dto.UpdateProductCommand
 import com.spoqa.hiringchallenge.application.product.mapper.ProductCommandMapper
 import com.spoqa.hiringchallenge.application.product.mapper.ProductResultMapper
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
-import org.springframework.stereotype.Service
+import com.spoqa.hiringchallenge.domain.product.vo.ProductId
 
-@Service
 class ProductService(
     private val productRepository: ProductRepository,
 ) : ProductUseCase {
@@ -24,11 +23,19 @@ class ProductService(
     }
 
     override fun findProduct(query: FindProductQuery): ProductResult {
-        throw UnsupportedOperationException("상품 단건 조회 usecase는 아직 구현되지 않았습니다.")
+        val product = productRepository.findById(ProductId(query.productId))
+            ?: throw NoSuchElementException("상품을 찾을 수 없습니다. productId=${query.productId}")
+
+        return ProductResultMapper.toResult(product)
     }
 
     override fun findProducts(query: FindProductsQuery): PageResult<ProductResult> {
-        throw UnsupportedOperationException("상품 목록 조회 usecase는 아직 구현되지 않았습니다.")
+        val productPage = productRepository.findAll(
+            page = query.page,
+            size = query.size,
+        )
+
+        return ProductResultMapper.toPageResult(productPage)
     }
 
     override fun updateProduct(command: UpdateProductCommand): ProductResult {
