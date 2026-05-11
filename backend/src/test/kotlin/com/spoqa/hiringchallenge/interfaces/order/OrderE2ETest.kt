@@ -1,0 +1,448 @@
+package com.spoqa.hiringchallenge.interfaces.order
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderE2ETestSupport.createOrder
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderE2ETestSupport.createProduct
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderRequestFixtures.createOrderLineRequest
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderRequestFixtures.createOrderRequest
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderRequestFixtures.updateOrderLineRequest
+import com.spoqa.hiringchallenge.interfaces.order.fixture.OrderRequestFixtures.updateOrderRequest
+import org.hamcrest.Matchers.hasItem
+import org.hamcrest.Matchers.hasItems
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
+
+@Transactional
+@AutoConfigureMockMvc
+@SpringBootTest
+@DisplayName("OrderController E2E")
+class OrderE2ETest(
+    @Autowired private val mockMvc: MockMvc,
+    @Autowired private val objectMapper: ObjectMapper,
+) {
+    @Nested
+    @DisplayName("POST /api/v1/orders")
+    inner class CreateOrder {
+        @Test
+        fun `주문을 생성한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                unitPrice = 1_500,
+            )
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(
+                        productId = productId,
+                        qty = 2,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isCreated)
+                .andExpect(jsonPath("$.orderId").exists())
+                .andExpect(jsonPath("$.ordererName").value("홍길동"))
+                .andExpect(jsonPath("$.address").value("서울시 중구"))
+                .andExpect(jsonPath("$.phoneNo").value("010-1234-5678"))
+                .andExpect(jsonPath("$.orderLines[0].productId").value(productId.toString()))
+                .andExpect(jsonPath("$.orderLines[0].qty").value(2))
+                .andExpect(jsonPath("$.orderLines[0].unitPrice").value(1500))
+        }
+
+        @Test
+        fun `존재하지 않는 상품으로 주문하면 404를 응답한다`() {
+            val productId = UUID.randomUUID()
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(productId = productId),
+                ),
+            )
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("상품을 찾을 수 없습니다. productId=$productId"))
+        }
+
+        @Test
+        fun `주문 줄이 비어 있으면 400을 응답한다`() {
+            val request = createOrderRequest(orderLines = emptyList())
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 줄은 1개 이상이어야 합니다."))
+        }
+
+        @Test
+        fun `주문 수량이 0이면 400을 응답한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+            )
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(
+                        productId = productId,
+                        qty = 0,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 수량은 1개 이상 1000000개 이하여야 합니다."))
+        }
+
+        @Test
+        fun `요청 본문이 JSON 형식이 아니면 400을 응답한다`() {
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("invalid-json"),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("요청 본문을 읽을 수 없습니다."))
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/orders/{orderId}")
+    inner class FindOrder {
+        @Test
+        fun `주문을 단건 조회한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                unitPrice = 2_000,
+            )
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = productId,
+                qty = 3,
+            )
+
+            mockMvc.perform(get("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.ordererName").value("홍길동"))
+                .andExpect(jsonPath("$.address").value("서울시 중구"))
+                .andExpect(jsonPath("$.phoneNo").value("010-1234-5678"))
+                .andExpect(jsonPath("$.orderLines[0].productId").value(productId.toString()))
+                .andExpect(jsonPath("$.orderLines[0].qty").value(3))
+                .andExpect(jsonPath("$.orderLines[0].unitPrice").value(2000))
+        }
+
+        @Test
+        fun `존재하지 않는 주문이면 404를 응답한다`() {
+            val orderId = UUID.randomUUID()
+
+            mockMvc.perform(get("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("주문을 찾을 수 없습니다. orderId=$orderId"))
+        }
+
+        @Test
+        fun `주문 ID가 UUID 형식이 아니면 400을 응답한다`() {
+            mockMvc.perform(get("/api/v1/orders/{orderId}", "invalid-order-id"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("잘못된 요청 값입니다. name=orderId"))
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/orders")
+    inner class FindOrders {
+        @Test
+        fun `주문 목록을 조회한다`() {
+            val colaProductId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "콜라",
+                unitPrice = 1_500,
+            )
+            val waterProductId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "생수",
+                unitPrice = 900,
+            )
+
+            createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                request = createOrderRequest(
+                    ordererName = "홍길동",
+                    orderLines = listOf(
+                        createOrderLineRequest(
+                            productId = colaProductId,
+                            qty = 2,
+                        ),
+                    ),
+                ),
+            )
+            createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                request = createOrderRequest(
+                    ordererName = "김철수",
+                    orderLines = listOf(
+                        createOrderLineRequest(
+                            productId = waterProductId,
+                            qty = 3,
+                        ),
+                    ),
+                ),
+            )
+
+            mockMvc.perform(get("/api/v1/orders?page=0&size=100"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.content[*].ordererName", hasItems("홍길동", "김철수")))
+                .andExpect(jsonPath("$.content[*].lineItemCount", hasItem(1)))
+                .andExpect(jsonPath("$.content[*].totalAmount", hasItems(3000, 2700)))
+                .andExpect(jsonPath("$.totalElements").exists())
+                .andExpect(jsonPath("$.totalPages").exists())
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.size").value(100))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").exists())
+        }
+
+        @Test
+        fun `page 파라미터가 없으면 400을 응답한다`() {
+            mockMvc.perform(get("/api/v1/orders?size=10"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("필수 요청 파라미터가 없습니다. name=page"))
+        }
+
+        @Test
+        fun `page가 음수이면 400을 응답한다`() {
+            mockMvc.perform(get("/api/v1/orders?page=-1&size=10"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Page index must not be less than zero"))
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/orders/{orderId}")
+    inner class UpdateOrder {
+        @Test
+        fun `주문을 수정한다`() {
+            val beforeProductId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "콜라",
+                unitPrice = 1_500,
+            )
+            val afterProductId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "사이다",
+                unitPrice = 1_800,
+            )
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = beforeProductId,
+            )
+            val request = updateOrderRequest(
+                ordererName = "김철수",
+                address = "서울시 강남구",
+                phoneNo = "010-9999-8888",
+                orderLines = listOf(
+                    updateOrderLineRequest(
+                        productId = afterProductId,
+                        qty = 4,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.ordererName").value("김철수"))
+                .andExpect(jsonPath("$.address").value("서울시 강남구"))
+                .andExpect(jsonPath("$.phoneNo").value("010-9999-8888"))
+                .andExpect(jsonPath("$.orderLines[0].productId").value(afterProductId.toString()))
+                .andExpect(jsonPath("$.orderLines[0].qty").value(4))
+                .andExpect(jsonPath("$.orderLines[0].unitPrice").value(1800))
+        }
+
+        @Test
+        fun `존재하지 않는 주문을 수정하면 404를 응답한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+            )
+            val orderId = UUID.randomUUID()
+            val request = updateOrderRequest(
+                orderLines = listOf(
+                    updateOrderLineRequest(productId = productId),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("주문을 찾을 수 없습니다. orderId=$orderId"))
+        }
+
+        @Test
+        fun `존재하지 않는 상품으로 주문을 수정하면 404를 응답한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+            )
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = productId,
+            )
+            val missingProductId = UUID.randomUUID()
+            val request = updateOrderRequest(
+                orderLines = listOf(
+                    updateOrderLineRequest(productId = missingProductId),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("상품을 찾을 수 없습니다. productId=$missingProductId"))
+        }
+
+        @Test
+        fun `수정 요청의 전화번호 형식이 잘못되면 400을 응답한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+            )
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = productId,
+            )
+            val request = updateOrderRequest(
+                phoneNo = "010-ABCD-1234",
+                orderLines = listOf(
+                    updateOrderLineRequest(productId = productId),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("전화번호는 숫자와 하이픈만 포함할 수 있습니다."))
+        }
+
+        @Test
+        fun `주문 ID가 UUID 형식이 아니면 400을 응답한다`() {
+            val request = updateOrderRequest()
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", "invalid-order-id")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("잘못된 요청 값입니다. name=orderId"))
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/v1/orders/{orderId}")
+    inner class DeleteOrder {
+        @Test
+        fun `주문을 삭제한다`() {
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+            )
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = productId,
+            )
+
+            mockMvc.perform(delete("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isNoContent)
+
+            mockMvc.perform(get("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+        }
+
+        @Test
+        fun `존재하지 않는 주문을 삭제하면 404를 응답한다`() {
+            val orderId = UUID.randomUUID()
+
+            mockMvc.perform(delete("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("주문을 찾을 수 없습니다. orderId=$orderId"))
+        }
+
+        @Test
+        fun `주문 ID가 UUID 형식이 아니면 400을 응답한다`() {
+            mockMvc.perform(delete("/api/v1/orders/{orderId}", "invalid-order-id"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("잘못된 요청 값입니다. name=orderId"))
+        }
+    }
+}

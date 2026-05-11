@@ -21,7 +21,9 @@ import com.spoqa.hiringchallenge.domain.order.OrderRepository
 import com.spoqa.hiringchallenge.domain.order.vo.OrderId
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
 import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
+import org.springframework.stereotype.Service
 
+@Service
 class OrderService(
     private val orderRepository: OrderRepository,
     private val productRepository: ProductRepository,
