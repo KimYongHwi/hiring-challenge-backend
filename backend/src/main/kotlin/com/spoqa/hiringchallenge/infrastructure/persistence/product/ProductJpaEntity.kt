@@ -4,10 +4,17 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.SQLDelete
+import org.hibernate.annotations.SQLRestriction
+import org.hibernate.annotations.UpdateTimestamp
+import java.time.Instant
 import java.util.UUID
 
 @Entity
 @Table(name = "products")
+@SQLDelete(sql = "UPDATE products SET deleted_at = CURRENT_TIMESTAMP WHERE product_id = ?")
+@SQLRestriction("deleted_at IS NULL")
 class ProductJpaEntity(
     @Id
     @Column(name = "product_id", nullable = false, updatable = false)
@@ -24,4 +31,15 @@ class ProductJpaEntity(
 
     @Column(name = "stock_qty", nullable = false)
     val stockQty: Int,
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: Instant? = null,
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant? = null,
+
+    @Column(name = "deleted_at")
+    val deletedAt: Instant? = null,
 )
