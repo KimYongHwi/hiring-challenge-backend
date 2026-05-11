@@ -12,6 +12,8 @@ import org.hamcrest.Matchers.hasItems
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.AfterEach
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -25,15 +27,21 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import org.assertj.core.api.Assertions.assertThat
 
-@Transactional
 @AutoConfigureMockMvc
 @SpringBootTest
 @DisplayName("OrderController E2E")
 class OrderE2ETest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val objectMapper: ObjectMapper,
+    @Autowired private val orderRepository: com.spoqa.hiringchallenge.domain.order.OrderRepository,
+    @Autowired private val productRepository: com.spoqa.hiringchallenge.domain.product.ProductRepository,
 ) {
+    @Transactional
     @Nested
     @DisplayName("POST /api/v1/orders")
     inner class CreateOrder {
@@ -66,6 +74,48 @@ class OrderE2ETest(
                 .andExpect(jsonPath("$.orderLines[0].productId").value(productId.toString()))
                 .andExpect(jsonPath("$.orderLines[0].qty").value(2))
                 .andExpect(jsonPath("$.orderLines[0].unitPrice").value(1500))
+        }
+
+        @Test
+        fun `주문자명이 비어 있으면 400을 응답한다`() {
+            val request = createOrderRequest(ordererName = "   ")
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문자명은 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `주소가 비어 있으면 400을 응답한다`() {
+            val request = createOrderRequest(address = "   ")
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주소는 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `전화번호가 비어 있으면 400을 응답한다`() {
+            val request = createOrderRequest(phoneNo = "       ")
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("전화번호는 비어 있을 수 없습니다."))
         }
 
         @Test
@@ -127,6 +177,27 @@ class OrderE2ETest(
         }
 
         @Test
+        fun `주문 수량이 음수이면 400을 응답한다`() {
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(
+                        productId = UUID.randomUUID(),
+                        qty = -1,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 수량은 1개 이상 1000000개 이하여야 합니다."))
+        }
+
+        @Test
         fun `요청 본문이 JSON 형식이 아니면 400을 응답한다`() {
             mockMvc.perform(
                 post("/api/v1/orders")
@@ -139,6 +210,7 @@ class OrderE2ETest(
         }
     }
 
+    @Transactional
     @Nested
     @DisplayName("GET /api/v1/orders/{orderId}")
     inner class FindOrder {
@@ -186,6 +258,7 @@ class OrderE2ETest(
         }
     }
 
+    @Transactional
     @Nested
     @DisplayName("GET /api/v1/orders")
     inner class FindOrders {
@@ -261,6 +334,7 @@ class OrderE2ETest(
         }
     }
 
+    @Transactional
     @Nested
     @DisplayName("PUT /api/v1/orders/{orderId}")
     inner class UpdateOrder {
@@ -362,6 +436,48 @@ class OrderE2ETest(
         }
 
         @Test
+        fun `수정 요청의 주문자명이 비어 있으면 400을 응답한다`() {
+            val request = updateOrderRequest(ordererName = "   ")
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문자명은 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `수정 요청의 주소가 비어 있으면 400을 응답한다`() {
+            val request = updateOrderRequest(address = "   ")
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주소는 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `수정 요청의 전화번호가 비어 있으면 400을 응답한다`() {
+            val request = updateOrderRequest(phoneNo = "       ")
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("전화번호는 비어 있을 수 없습니다."))
+        }
+
+        @Test
         fun `수정 요청의 전화번호 형식이 잘못되면 400을 응답한다`() {
             val productId = createProduct(
                 mockMvc = mockMvc,
@@ -390,6 +506,62 @@ class OrderE2ETest(
         }
 
         @Test
+        fun `수정 요청의 주문 줄이 비어 있으면 400을 응답한다`() {
+            val request = updateOrderRequest(orderLines = emptyList())
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 줄은 1개 이상이어야 합니다."))
+        }
+
+        @Test
+        fun `수정 요청의 주문 수량이 0이면 400을 응답한다`() {
+            val request = updateOrderRequest(
+                orderLines = listOf(
+                    updateOrderLineRequest(
+                        productId = UUID.randomUUID(),
+                        qty = 0,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 수량은 1개 이상 1000000개 이하여야 합니다."))
+        }
+
+        @Test
+        fun `수정 요청의 주문 수량이 음수이면 400을 응답한다`() {
+            val request = updateOrderRequest(
+                orderLines = listOf(
+                    updateOrderLineRequest(
+                        productId = UUID.randomUUID(),
+                        qty = -1,
+                    ),
+                ),
+            )
+
+            mockMvc.perform(
+                put("/api/v1/orders/{orderId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("주문 수량은 1개 이상 1000000개 이하여야 합니다."))
+        }
+
+        @Test
         fun `주문 ID가 UUID 형식이 아니면 400을 응답한다`() {
             val request = updateOrderRequest()
 
@@ -404,6 +576,7 @@ class OrderE2ETest(
         }
     }
 
+    @Transactional
     @Nested
     @DisplayName("DELETE /api/v1/orders/{orderId}")
     inner class DeleteOrder {
@@ -443,6 +616,70 @@ class OrderE2ETest(
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("잘못된 요청 값입니다. name=orderId"))
+        }
+    }
+    
+    @Nested
+    @DirtiesContext
+    @DisplayName("Concurrency Tests")
+    inner class ConcurrencyTests {
+        @AfterEach
+        fun tearDown() {
+            orderRepository.deleteAll()
+        }
+
+        @Test
+        @DisplayName("동시에 100개의 주문이 들어와도 재고가 정확하게 차감되어야 한다")
+        fun `concurrency test for order creation`() {
+            // Given: 재고가 100개인 상품 생성
+            val initialStock = 100
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                stockQty = initialStock
+            )
+
+            val threadCount = 100
+            val executorService = Executors.newFixedThreadPool(32)
+            val latch = CountDownLatch(threadCount)
+            val successCount = AtomicInteger(0)
+            val failCount = AtomicInteger(0)
+
+            // When: 100개의 쓰레드에서 동시에 각각 1개씩 주문
+            for (i in 1..threadCount) {
+                executorService.submit {
+                    try {
+                        val request = createOrderRequest(
+                            orderLines = listOf(
+                                createOrderLineRequest(productId = productId, qty = 1)
+                            )
+                        )
+                        createOrder(mockMvc, objectMapper, request)
+                        successCount.incrementAndGet()
+                    } catch (e: Exception) {
+                        failCount.incrementAndGet()
+                    } finally {
+                        latch.countDown()
+                    }
+                }
+            }
+
+            latch.await()
+            executorService.shutdown()
+
+            // Then: 모든 주문이 성공하고 재고가 0이어야 함
+            assertThat(successCount.get()).isEqualTo(threadCount)
+            assertThat(failCount.get()).isEqualTo(0)
+
+            val productResult = mockMvc.perform(get("/api/v1/products/{productId}", productId))
+                .andExpect(status().isOk)
+                .andReturn()
+
+            val stockQty = objectMapper.readTree(productResult.response.contentAsString)
+                .get("stockQty")
+                .asInt()
+
+            assertThat(stockQty).isEqualTo(0)
         }
     }
 }

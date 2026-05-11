@@ -52,7 +52,7 @@ class ProductE2ETest(
             mockMvc.perform(
                 post("/api/v1/products")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(createProductRequest(productName = ""))),
+                    .content(objectMapper.writeValueAsString(createProductRequest(productName = "   "))),
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
@@ -60,11 +60,23 @@ class ProductE2ETest(
         }
 
         @Test
-        fun `단가가 0원이면 400을 응답한다`() {
+        fun `단위가 비어 있으면 400을 응답한다`() {
             mockMvc.perform(
                 post("/api/v1/products")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(createProductRequest(unitPrice = 0))),
+                    .content(objectMapper.writeValueAsString(createProductRequest(unit = "   "))),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("단위는 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `단가가 음수이면 400을 응답한다`() {
+            mockMvc.perform(
+                post("/api/v1/products")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createProductRequest(unitPrice = -1))),
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
@@ -283,37 +295,59 @@ class ProductE2ETest(
         }
 
         @Test
-        fun `수정 요청의 단위가 비어 있으면 400을 응답한다`() {
-            val createResult =
-                mockMvc.perform(
-                    post("/api/v1/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                            objectMapper.writeValueAsString(
-                                createProductRequest(
-                                    productName = "감자칩",
-                                    unit = "봉",
-                                    unitPrice = 1_700,
-                                    stockQty = 15,
-                                ),
-                            ),
-                        ),
-                )
-                    .andExpect(status().isCreated)
-                    .andReturn()
-
-            val productId = objectMapper.readTree(createResult.response.contentAsString)
-                .get("productId")
-                .asText()
+        fun `수정 요청의 상품명이 비어 있으면 400을 응답한다`() {
+            val productId = UUID.randomUUID()
 
             mockMvc.perform(
                 put("/api/v1/products/{productId}", productId)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(updateProductRequest(unit = ""))),
+                    .content(objectMapper.writeValueAsString(updateProductRequest(productName = "   "))),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("상품명은 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `수정 요청의 단위가 비어 있으면 400을 응답한다`() {
+            val productId = UUID.randomUUID()
+
+            mockMvc.perform(
+                put("/api/v1/products/{productId}", productId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateProductRequest(unit = "   "))),
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("단위는 비어 있을 수 없습니다."))
+        }
+
+        @Test
+        fun `수정 요청의 단가가 음수이면 400을 응답한다`() {
+            val productId = UUID.randomUUID()
+
+            mockMvc.perform(
+                put("/api/v1/products/{productId}", productId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateProductRequest(unitPrice = -1))),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("단가는 1원 이상 1000000000원 이하여야 합니다."))
+        }
+
+        @Test
+        fun `수정 요청의 재고 수량이 음수이면 400을 응답한다`() {
+            val productId = UUID.randomUUID()
+
+            mockMvc.perform(
+                put("/api/v1/products/{productId}", productId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateProductRequest(stockQty = -1))),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("재고 수량은 0개 이상 1000000개 이하여야 합니다."))
         }
 
         @Test

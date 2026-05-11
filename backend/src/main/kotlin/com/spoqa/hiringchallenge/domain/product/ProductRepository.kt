@@ -7,6 +7,8 @@ interface ProductRepository {
 
     fun findById(productId: ProductId): Product?
 
+    fun findByIdForUpdate(productId: ProductId): Product?
+
     fun findAll(page: Int, size: Int): ProductPage
 
     fun deleteById(productId: ProductId)

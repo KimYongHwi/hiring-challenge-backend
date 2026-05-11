@@ -19,6 +19,10 @@ class ProductRepositoryAdapter(
             .map { it.toDomain() }
             .orElse(null)
 
+    override fun findByIdForUpdate(productId: ProductId): Product? =
+        productJpaRepository.findByIdForUpdate(productId.value)
+            ?.toDomain()
+
     override fun findAll(page: Int, size: Int): ProductPage {
         val productPage = productJpaRepository.findAll(PageRequest.of(page, size))
 

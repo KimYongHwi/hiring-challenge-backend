@@ -1,5 +1,7 @@
 package com.spoqa.hiringchallenge.application.product
 
+import java.util.UUID
+
 import com.spoqa.hiringchallenge.application.product.dto.CreateProductCommand
 import com.spoqa.hiringchallenge.application.product.dto.DeleteProductCommand
 import com.spoqa.hiringchallenge.application.product.dto.FindProductQuery
@@ -18,4 +20,6 @@ interface ProductUseCase {
     fun updateProduct(command: UpdateProductCommand): ProductResult
 
     fun deleteProduct(command: DeleteProductCommand)
+
+    fun updateStock(productId: UUID, quantity: Int): ProductResult
 }

@@ -54,4 +54,9 @@ class OrderRepositoryAdapter(
         orderLineJpaRepository.deleteAll(orderEntity.orderLines)
         orderJpaRepository.delete(orderEntity)
     }
+
+    override fun deleteAll() {
+        orderLineJpaRepository.deleteAll()
+        orderJpaRepository.deleteAll()
+    }
 }

@@ -10,4 +10,6 @@ interface OrderRepository {
     fun findAll(page: Int, size: Int): OrderPage
 
     fun deleteById(orderId: OrderId)
+
+    fun deleteAll()
 }

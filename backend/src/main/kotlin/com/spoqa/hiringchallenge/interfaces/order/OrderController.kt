@@ -1,6 +1,6 @@
 package com.spoqa.hiringchallenge.interfaces.order
 
-import com.spoqa.hiringchallenge.application.order.OrderUseCase
+import com.spoqa.hiringchallenge.application.order.OrderFacade
 import com.spoqa.hiringchallenge.application.order.dto.DeleteOrderCommand
 import com.spoqa.hiringchallenge.application.order.dto.FindOrderQuery
 import com.spoqa.hiringchallenge.application.order.dto.FindOrdersQuery
@@ -29,47 +29,37 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/v1/orders")
 class OrderController(
-    private val orderUseCase: OrderUseCase,
+    private val orderFacade: OrderFacade,
 ) {
+
     @GetMapping
-    fun findOrders(
-        @RequestParam page: Int,
-        @RequestParam size: Int,
-    ): PageResult<OrderListItemResponse> =
-        orderUseCase.findOrders(
-            FindOrdersQuery(
-                page = page,
-                size = size,
-            ),
-        ).toOrderListItemResponsePage()
+    fun findOrders(@RequestParam page: Int, @RequestParam size: Int): PageResult<OrderListItemResponse> =
+        orderFacade.findOrders(FindOrdersQuery(page = page, size = size))
+            .toOrderListItemResponsePage()
 
     @GetMapping("/{orderId}")
     fun findOrder(
         @PathVariable orderId: UUID,
     ): OrderDetailResponse =
-        orderUseCase.findOrder(
-            FindOrderQuery(orderId = orderId),
-        ).toResponse()
+        orderFacade.findOrder(FindOrderQuery(orderId = orderId)).toResponse()
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun createOrder(
         @RequestBody @Valid request: CreateOrderRequest,
     ): OrderDetailResponse =
-        orderUseCase.createOrder(request.toCommand()).toResponse()
+        orderFacade.createOrder(request.toCommand()).toResponse()
 
     @PutMapping("/{orderId}")
     fun updateOrder(
         @PathVariable orderId: UUID,
         @RequestBody @Valid request: UpdateOrderRequest,
     ): OrderDetailResponse =
-        orderUseCase.updateOrder(request.toCommand(orderId)).toResponse()
+        orderFacade.updateOrder(request.toCommand(orderId)).toResponse()
 
     @DeleteMapping("/{orderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun deleteOrder(
-        @PathVariable orderId: UUID,
-    ) {
-        orderUseCase.deleteOrder(DeleteOrderCommand(orderId = orderId))
+    fun deleteOrder(@PathVariable orderId: UUID) {
+        orderFacade.deleteOrder(DeleteOrderCommand(orderId = orderId))
     }
 }

@@ -25,4 +25,17 @@ data class Product(
             unitPrice = unitPrice,
             stockQty = stockQty,
         )
+
+    fun decreaseStock(quantity: StockQuantity): Product {
+        require(stockQty.value >= quantity.value) { "재고 수량이 부족합니다." }
+
+        return copy(
+            stockQty = StockQuantity(stockQty.value - quantity.value),
+        )
+    }
+
+    fun increaseStock(quantity: StockQuantity): Product =
+        copy(
+            stockQty = StockQuantity(stockQty.value + quantity.value),
+        )
 }

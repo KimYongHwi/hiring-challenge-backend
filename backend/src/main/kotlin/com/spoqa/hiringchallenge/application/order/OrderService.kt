@@ -25,11 +25,11 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-@Transactional(readOnly = true)
 class OrderService(
     private val orderRepository: OrderRepository,
     private val productRepository: ProductRepository,
 ) : OrderUseCase {
+
     @Transactional
     override fun createOrder(command: CreateOrderCommand): OrderDetailResult {
         val orderLines = command.orderLines.map { orderLineCommand ->
@@ -45,6 +45,7 @@ class OrderService(
         return savedOrder.toDetailResult()
     }
 
+    @Transactional(readOnly = true)
     override fun findOrder(query: FindOrderQuery): OrderDetailResult {
         val orderId = OrderId(query.orderId)
         val order = orderRepository.findById(orderId)
@@ -53,6 +54,7 @@ class OrderService(
         return order.toDetailResult()
     }
 
+    @Transactional(readOnly = true)
     override fun findOrders(query: FindOrdersQuery): PageResult<OrderListItemResult> {
         val orderPage = orderRepository.findAll(
             page = query.page,

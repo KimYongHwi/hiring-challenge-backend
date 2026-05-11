@@ -4,6 +4,7 @@ import com.spoqa.hiringchallenge.application.order.dto.CreateOrderCommand
 import com.spoqa.hiringchallenge.application.order.dto.CreateOrderLineCommand
 import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderCommand
 import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderLineCommand
+import com.spoqa.hiringchallenge.domain.order.exception.OrderNotFoundException
 import com.spoqa.hiringchallenge.domain.order.Order
 import com.spoqa.hiringchallenge.domain.order.OrderLine
 import com.spoqa.hiringchallenge.domain.order.vo.OrderAddress
@@ -12,6 +13,7 @@ import com.spoqa.hiringchallenge.domain.order.vo.OrderQuantity
 import com.spoqa.hiringchallenge.domain.order.vo.OrdererName
 import com.spoqa.hiringchallenge.domain.order.vo.PhoneNo
 import com.spoqa.hiringchallenge.domain.product.Product
+import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 import com.spoqa.hiringchallenge.domain.product.vo.ProductId
 import java.util.UUID
 
@@ -22,6 +24,27 @@ fun CreateOrderCommand.toOrder(orderLines: List<OrderLine>): Order =
         address = OrderAddress(address),
         phoneNo = PhoneNo(phoneNo),
         orderLines = orderLines,
+    )
+
+fun CreateOrderCommand.toOrder(
+    orderId: OrderId,
+    products: Map<ProductId, Product>,
+): Order =
+    Order(
+        orderId = orderId,
+        ordererName = OrdererName(ordererName),
+        address = OrderAddress(address),
+        phoneNo = PhoneNo(phoneNo),
+        orderLines = orderLines.map { orderLineCommand ->
+            val productId = ProductId(orderLineCommand.productId)
+            val product = products[productId] ?: throw ProductNotFoundException(productId)
+
+            OrderLine(
+                productId = product.productId,
+                qty = OrderQuantity(orderLineCommand.qty),
+                unitPrice = product.unitPrice,
+            )
+        },
     )
 
 fun CreateOrderLineCommand.toProductId(): ProductId =
@@ -51,4 +74,25 @@ fun UpdateOrderLineCommand.toOrderLine(product: Product): OrderLine =
         productId = product.productId,
         qty = OrderQuantity(qty),
         unitPrice = product.unitPrice,
+    )
+
+fun UpdateOrderCommand.toOrder(
+    orderId: OrderId,
+    products: Map<ProductId, Product>,
+): Order =
+    Order(
+        orderId = orderId,
+        ordererName = OrdererName(ordererName),
+        address = OrderAddress(address),
+        phoneNo = PhoneNo(phoneNo),
+        orderLines = orderLines.map { orderLineCommand ->
+            val productId = ProductId(orderLineCommand.productId)
+            val product = products[productId] ?: throw ProductNotFoundException(productId)
+
+            OrderLine(
+                productId = product.productId,
+                qty = OrderQuantity(orderLineCommand.qty),
+                unitPrice = product.unitPrice,
+            )
+        },
     )
