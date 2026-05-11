@@ -13,7 +13,18 @@ class OrderRepositoryAdapter(
     private val orderLineJpaRepository: OrderLineJpaRepository,
 ) : OrderRepository {
     override fun save(order: Order): Order {
-        val orderEntity = order.toJpaEntity()
+        val orderEntity = orderJpaRepository.findById(order.orderId.value)
+            .map { existingOrder ->
+                existingOrder.ordererName = order.ordererName.value
+                existingOrder.address = order.address.value
+                existingOrder.phoneNo = order.phoneNo.value
+                existingOrder.orderLines.clear()
+                existingOrder.orderLines.addAll(
+                    order.orderLines.map { it.toJpaEntity(existingOrder) },
+                )
+                existingOrder
+            }
+            .orElseGet { order.toJpaEntity() }
         val savedOrder = orderJpaRepository.save(orderEntity)
 
         return savedOrder.toDomain()

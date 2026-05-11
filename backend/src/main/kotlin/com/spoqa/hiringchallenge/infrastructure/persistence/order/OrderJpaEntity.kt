@@ -24,13 +24,13 @@ class OrderJpaEntity(
     val orderId: UUID,
 
     @Column(name = "orderer_name", nullable = false, length = 50)
-    val ordererName: String,
+    var ordererName: String,
 
     @Column(name = "address", nullable = false, length = 255)
-    val address: String,
+    var address: String,
 
     @Column(name = "phone_no", nullable = false, length = 20)
-    val phoneNo: String,
+    var phoneNo: String,
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
