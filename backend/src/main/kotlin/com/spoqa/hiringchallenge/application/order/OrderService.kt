@@ -10,8 +10,11 @@ import com.spoqa.hiringchallenge.application.order.dto.PageResult
 import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderCommand
 import com.spoqa.hiringchallenge.application.order.mapper.toDetailResult
 import com.spoqa.hiringchallenge.application.order.mapper.toOrder
+import com.spoqa.hiringchallenge.application.order.mapper.toOrderAddress
 import com.spoqa.hiringchallenge.application.order.mapper.toOrderLine
+import com.spoqa.hiringchallenge.application.order.mapper.toOrdererName
 import com.spoqa.hiringchallenge.application.order.mapper.toPageResult
+import com.spoqa.hiringchallenge.application.order.mapper.toPhoneNo
 import com.spoqa.hiringchallenge.application.order.mapper.toProductId
 import com.spoqa.hiringchallenge.domain.order.exception.OrderNotFoundException
 import com.spoqa.hiringchallenge.domain.order.OrderRepository
@@ -55,10 +58,32 @@ class OrderService(
     }
 
     override fun updateOrder(command: UpdateOrderCommand): OrderDetailResult {
-        throw UnsupportedOperationException("주문 수정 usecase는 아직 구현되지 않았습니다.")
+        val orderId = OrderId(command.orderId)
+        val order = orderRepository.findById(orderId)
+            ?: throw OrderNotFoundException(orderId)
+        val orderLines = command.orderLines.map { orderLineCommand ->
+            val productId = orderLineCommand.toProductId()
+            val product = productRepository.findById(productId)
+                ?: throw ProductNotFoundException(productId)
+
+            orderLineCommand.toOrderLine(product)
+        }
+        val updatedOrder = order.update(
+            ordererName = command.toOrdererName(),
+            address = command.toOrderAddress(),
+            phoneNo = command.toPhoneNo(),
+            orderLines = orderLines,
+        )
+        val savedOrder = orderRepository.save(updatedOrder)
+
+        return savedOrder.toDetailResult()
     }
 
     override fun deleteOrder(command: DeleteOrderCommand) {
-        throw UnsupportedOperationException("주문 삭제 usecase는 아직 구현되지 않았습니다.")
+        val orderId = OrderId(command.orderId)
+        orderRepository.findById(orderId)
+            ?: throw OrderNotFoundException(orderId)
+
+        orderRepository.deleteById(orderId)
     }
 }

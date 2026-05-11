@@ -2,6 +2,8 @@ package com.spoqa.hiringchallenge.application.order.mapper
 
 import com.spoqa.hiringchallenge.application.order.dto.CreateOrderCommand
 import com.spoqa.hiringchallenge.application.order.dto.CreateOrderLineCommand
+import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderCommand
+import com.spoqa.hiringchallenge.application.order.dto.UpdateOrderLineCommand
 import com.spoqa.hiringchallenge.domain.order.Order
 import com.spoqa.hiringchallenge.domain.order.OrderLine
 import com.spoqa.hiringchallenge.domain.order.vo.OrderAddress
@@ -26,6 +28,25 @@ fun CreateOrderLineCommand.toProductId(): ProductId =
     ProductId(productId)
 
 fun CreateOrderLineCommand.toOrderLine(product: Product): OrderLine =
+    OrderLine(
+        productId = product.productId,
+        qty = OrderQuantity(qty),
+        unitPrice = product.unitPrice,
+    )
+
+fun UpdateOrderCommand.toOrdererName(): OrdererName =
+    OrdererName(ordererName)
+
+fun UpdateOrderCommand.toOrderAddress(): OrderAddress =
+    OrderAddress(address)
+
+fun UpdateOrderCommand.toPhoneNo(): PhoneNo =
+    PhoneNo(phoneNo)
+
+fun UpdateOrderLineCommand.toProductId(): ProductId =
+    ProductId(productId)
+
+fun UpdateOrderLineCommand.toOrderLine(product: Product): OrderLine =
     OrderLine(
         productId = product.productId,
         qty = OrderQuantity(qty),
