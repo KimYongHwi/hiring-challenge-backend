@@ -17,7 +17,9 @@ import com.spoqa.hiringchallenge.application.product.mapper.toUnitPrice
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
 import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 import com.spoqa.hiringchallenge.domain.product.vo.ProductId
+import org.springframework.stereotype.Service
 
+@Service
 class ProductService(
     private val productRepository: ProductRepository,
 ) : ProductUseCase {
