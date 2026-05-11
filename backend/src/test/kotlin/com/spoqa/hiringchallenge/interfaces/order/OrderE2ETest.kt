@@ -38,8 +38,6 @@ import org.assertj.core.api.Assertions.assertThat
 class OrderE2ETest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val objectMapper: ObjectMapper,
-    @Autowired private val orderRepository: com.spoqa.hiringchallenge.domain.order.OrderRepository,
-    @Autowired private val productRepository: com.spoqa.hiringchallenge.domain.product.ProductRepository,
 ) {
     @Transactional
     @Nested
@@ -620,14 +618,125 @@ class OrderE2ETest(
     }
     
     @Nested
+    @DisplayName("Edge Case Tests")
+    inner class EdgeCaseTests {
+        @Test
+        @Transactional
+        fun `주문 생성 후 상품 가격이 변해도 기존 주문의 단가는 유지되어야 한다`() {
+            // Given: 상품 생성 (단가 1000원)
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                unitPrice = 1000
+            )
+            // 주문 생성
+            val orderId = createOrder(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productId = productId,
+                qty = 5
+            )
+
+            // When: 상품 가격 수정 (2000원으로 변경)
+            val updateRequest = mapOf(
+                "productName" to "수정된 상품",
+                "unit" to "개",
+                "unitPrice" to 2000,
+                "stockQty" to 100
+            )
+            mockMvc.perform(
+                put("/api/v1/products/{productId}", productId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateRequest))
+            ).andExpect(status().isOk)
+
+            // Then: 기존 주문 조회 시 단가가 1000원이어야 함
+            mockMvc.perform(get("/api/v1/orders/{orderId}", orderId))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.orderLines[0].unitPrice").value(1000))
+                
+            // 목록 조회 시에도 총액이 유지되어야 함 (1000 * 5 = 5000)
+            mockMvc.perform(get("/api/v1/orders?page=0&size=10"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.content[?(@.orderId=='$orderId')].totalAmount").value(5000))
+        }
+
+        @Test
+        @Transactional
+        fun `재고가 부족하면 주문에 실패하고 400 에러를 반환한다`() {
+            // Given: 재고가 10개인 상품 생성
+            val productId = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                stockQty = 10
+            )
+
+            // When: 11개 주문 시도
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(productId = productId, qty = 11)
+                )
+            )
+
+            // Then: 400 Bad Request 및 에러 메시지 확인
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("재고 수량이 부족합니다."))
+        }
+
+        @Test
+        @Transactional
+        fun `주문 생성 중 재고 부족으로 실패하면 모든 변경사항이 롤백되어야 한다`() {
+            // Given: 상품 A(재고 10), 상품 B(재고 0) 생성
+            val productIdA = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "상품A",
+                stockQty = 10
+            )
+            val productIdB = createProduct(
+                mockMvc = mockMvc,
+                objectMapper = objectMapper,
+                productName = "상품B",
+                stockQty = 0
+            )
+
+            // When: 상품 A(5개), 상품 B(1개) 주문 시도 -> B 때문에 실패 예상
+            val request = createOrderRequest(
+                orderLines = listOf(
+                    createOrderLineRequest(productId = productIdA, qty = 5),
+                    createOrderLineRequest(productId = productIdB, qty = 1)
+                )
+            )
+
+            mockMvc.perform(
+                post("/api/v1/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request))
+            ).andExpect(status().isBadRequest)
+
+            // Then: 상품 A의 재고가 여전히 10이어야 함 (차감된 5가 롤백됨)
+            val productAResult = mockMvc.perform(get("/api/v1/products/{productId}", productIdA))
+                .andExpect(status().isOk)
+                .andReturn()
+
+            val stockQtyA = objectMapper.readTree(productAResult.response.contentAsString)
+                .get("stockQty")
+                .asInt()
+
+            assertThat(stockQtyA).isEqualTo(10)
+        }
+    }
+    
+    @Nested
     @DirtiesContext
     @DisplayName("Concurrency Tests")
     inner class ConcurrencyTests {
-        @AfterEach
-        fun tearDown() {
-            orderRepository.deleteAll()
-        }
-
         @Test
         @DisplayName("동시에 100개의 주문이 들어와도 재고가 정확하게 차감되어야 한다")
         fun `concurrency test for order creation`() {
