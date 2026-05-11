@@ -22,12 +22,15 @@ import com.spoqa.hiringchallenge.domain.order.vo.OrderId
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
 import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
+@Transactional(readOnly = true)
 class OrderService(
     private val orderRepository: OrderRepository,
     private val productRepository: ProductRepository,
 ) : OrderUseCase {
+    @Transactional
     override fun createOrder(command: CreateOrderCommand): OrderDetailResult {
         val orderLines = command.orderLines.map { orderLineCommand ->
             val productId = orderLineCommand.toProductId()
@@ -59,6 +62,7 @@ class OrderService(
         return orderPage.toPageResult()
     }
 
+    @Transactional
     override fun updateOrder(command: UpdateOrderCommand): OrderDetailResult {
         val orderId = OrderId(command.orderId)
         val order = orderRepository.findById(orderId)
@@ -81,6 +85,7 @@ class OrderService(
         return savedOrder.toDetailResult()
     }
 
+    @Transactional
     override fun deleteOrder(command: DeleteOrderCommand) {
         val orderId = OrderId(command.orderId)
         orderRepository.findById(orderId)

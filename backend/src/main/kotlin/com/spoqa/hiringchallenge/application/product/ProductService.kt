@@ -18,11 +18,14 @@ import com.spoqa.hiringchallenge.domain.product.ProductRepository
 import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 import com.spoqa.hiringchallenge.domain.product.vo.ProductId
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
+@Transactional(readOnly = true)
 class ProductService(
     private val productRepository: ProductRepository,
 ) : ProductUseCase {
+    @Transactional
     override fun createProduct(command: CreateProductCommand): ProductResult {
         val product = command.toProduct()
         val savedProduct = productRepository.save(product)
@@ -47,6 +50,7 @@ class ProductService(
         return productPage.toPageResult()
     }
 
+    @Transactional
     override fun updateProduct(command: UpdateProductCommand): ProductResult {
         val productId = ProductId(command.productId)
         val product = productRepository.findById(productId)
@@ -63,6 +67,7 @@ class ProductService(
         return savedProduct.toResult()
     }
 
+    @Transactional
     override fun deleteProduct(command: DeleteProductCommand) {
         val productId = ProductId(command.productId)
         productRepository.findById(productId)
