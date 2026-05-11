@@ -7,26 +7,33 @@ import com.spoqa.hiringchallenge.application.product.dto.FindProductsQuery
 import com.spoqa.hiringchallenge.application.product.dto.PageResult
 import com.spoqa.hiringchallenge.application.product.dto.ProductResult
 import com.spoqa.hiringchallenge.application.product.dto.UpdateProductCommand
-import com.spoqa.hiringchallenge.application.product.mapper.ProductCommandMapper
-import com.spoqa.hiringchallenge.application.product.mapper.ProductResultMapper
+import com.spoqa.hiringchallenge.application.product.mapper.toPageResult
+import com.spoqa.hiringchallenge.application.product.mapper.toProduct
+import com.spoqa.hiringchallenge.application.product.mapper.toProductName
+import com.spoqa.hiringchallenge.application.product.mapper.toProductUnit
+import com.spoqa.hiringchallenge.application.product.mapper.toResult
+import com.spoqa.hiringchallenge.application.product.mapper.toStockQuantity
+import com.spoqa.hiringchallenge.application.product.mapper.toUnitPrice
 import com.spoqa.hiringchallenge.domain.product.ProductRepository
+import com.spoqa.hiringchallenge.domain.product.exception.ProductNotFoundException
 import com.spoqa.hiringchallenge.domain.product.vo.ProductId
 
 class ProductService(
     private val productRepository: ProductRepository,
 ) : ProductUseCase {
     override fun createProduct(command: CreateProductCommand): ProductResult {
-        val product = ProductCommandMapper.toProduct(command)
+        val product = command.toProduct()
         val savedProduct = productRepository.save(product)
 
-        return ProductResultMapper.toResult(savedProduct)
+        return savedProduct.toResult()
     }
 
     override fun findProduct(query: FindProductQuery): ProductResult {
-        val product = productRepository.findById(ProductId(query.productId))
-            ?: throw NoSuchElementException("상품을 찾을 수 없습니다. productId=${query.productId}")
+        val productId = ProductId(query.productId)
+        val product = productRepository.findById(productId)
+            ?: throw ProductNotFoundException(productId)
 
-        return ProductResultMapper.toResult(product)
+        return product.toResult()
     }
 
     override fun findProducts(query: FindProductsQuery): PageResult<ProductResult> {
@@ -35,14 +42,30 @@ class ProductService(
             size = query.size,
         )
 
-        return ProductResultMapper.toPageResult(productPage)
+        return productPage.toPageResult()
     }
 
     override fun updateProduct(command: UpdateProductCommand): ProductResult {
-        throw UnsupportedOperationException("상품 수정 usecase는 아직 구현되지 않았습니다.")
+        val productId = ProductId(command.productId)
+        val product = productRepository.findById(productId)
+            ?: throw ProductNotFoundException(productId)
+
+        val updatedProduct = product.update(
+            productName = command.toProductName(),
+            unit = command.toProductUnit(),
+            unitPrice = command.toUnitPrice(),
+            stockQty = command.toStockQuantity(),
+        )
+        val savedProduct = productRepository.save(updatedProduct)
+
+        return savedProduct.toResult()
     }
 
     override fun deleteProduct(command: DeleteProductCommand) {
-        throw UnsupportedOperationException("상품 삭제 usecase는 아직 구현되지 않았습니다.")
+        val productId = ProductId(command.productId)
+        productRepository.findById(productId)
+            ?: throw ProductNotFoundException(productId)
+
+        productRepository.deleteById(productId)
     }
 }

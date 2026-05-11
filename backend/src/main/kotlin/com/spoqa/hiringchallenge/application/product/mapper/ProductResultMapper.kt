@@ -5,24 +5,22 @@ import com.spoqa.hiringchallenge.application.product.dto.ProductResult
 import com.spoqa.hiringchallenge.domain.product.Product
 import com.spoqa.hiringchallenge.domain.product.ProductPage
 
-object ProductResultMapper {
-    fun toResult(product: Product): ProductResult =
-        ProductResult(
-            productId = product.productId.value,
-            productName = product.productName.value,
-            unit = product.unit.value,
-            unitPrice = product.unitPrice.value,
-            stockQty = product.stockQty.value,
-        )
+fun Product.toResult(): ProductResult =
+    ProductResult(
+        productId = productId.value,
+        productName = productName.value,
+        unit = unit.value,
+        unitPrice = unitPrice.value,
+        stockQty = stockQty.value,
+    )
 
-    fun toPageResult(productPage: ProductPage): PageResult<ProductResult> =
-        PageResult(
-            content = productPage.content.map { toResult(it) },
-            totalElements = productPage.totalElements,
-            totalPages = productPage.totalPages,
-            number = productPage.number,
-            size = productPage.size,
-            first = productPage.first,
-            last = productPage.last,
-        )
-}
+fun ProductPage.toPageResult(): PageResult<ProductResult> =
+    PageResult(
+        content = content.map { it.toResult() },
+        totalElements = totalElements,
+        totalPages = totalPages,
+        number = number,
+        size = size,
+        first = first,
+        last = last,
+    )
