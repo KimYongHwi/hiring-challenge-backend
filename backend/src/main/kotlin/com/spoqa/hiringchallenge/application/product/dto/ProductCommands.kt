@@ -1,4 +1,4 @@
-package com.spoqa.hiringchallenge.application.product
+package com.spoqa.hiringchallenge.application.product.dto
 
 import java.util.UUID
 

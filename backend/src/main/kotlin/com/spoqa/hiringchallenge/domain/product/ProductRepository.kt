@@ -11,13 +11,3 @@ interface ProductRepository {
 
     fun deleteById(productId: ProductId)
 }
-
-data class ProductPage(
-    val content: List<Product>,
-    val totalElements: Long,
-    val totalPages: Int,
-    val number: Int,
-    val size: Int,
-    val first: Boolean,
-    val last: Boolean,
-)
