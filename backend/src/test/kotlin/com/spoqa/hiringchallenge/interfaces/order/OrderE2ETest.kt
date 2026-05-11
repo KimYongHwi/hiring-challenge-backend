@@ -12,8 +12,6 @@ import org.hamcrest.Matchers.hasItems
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.AfterEach
-import org.springframework.test.annotation.DirtiesContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -31,6 +29,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import org.assertj.core.api.Assertions.assertThat
+import org.springframework.test.annotation.DirtiesContext
 
 @AutoConfigureMockMvc
 @SpringBootTest
@@ -621,7 +620,6 @@ class OrderE2ETest(
     @DisplayName("Edge Case Tests")
     inner class EdgeCaseTests {
         @Test
-        @Transactional
         fun `주문 생성 후 상품 가격이 변해도 기존 주문의 단가는 유지되어야 한다`() {
             // Given: 상품 생성 (단가 1000원)
             val productId = createProduct(
@@ -662,7 +660,6 @@ class OrderE2ETest(
         }
 
         @Test
-        @Transactional
         fun `재고가 부족하면 주문에 실패하고 400 에러를 반환한다`() {
             // Given: 재고가 10개인 상품 생성
             val productId = createProduct(
@@ -690,7 +687,6 @@ class OrderE2ETest(
         }
 
         @Test
-        @Transactional
         fun `주문 생성 중 재고 부족으로 실패하면 모든 변경사항이 롤백되어야 한다`() {
             // Given: 상품 A(재고 10), 상품 B(재고 0) 생성
             val productIdA = createProduct(
