@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
 import java.util.UUID
 
 @RestController
@@ -52,14 +53,14 @@ class ProductController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun createProduct(
-        @RequestBody request: CreateProductRequest,
+        @RequestBody @Valid request: CreateProductRequest,
     ): ProductResponse =
         productUseCase.createProduct(request.toCommand()).toResponse()
 
     @PutMapping("/{productId}")
     fun updateProduct(
         @PathVariable productId: UUID,
-        @RequestBody request: UpdateProductRequest,
+        @RequestBody @Valid request: UpdateProductRequest,
     ): ProductResponse =
         productUseCase.updateProduct(request.toCommand(productId)).toResponse()
 

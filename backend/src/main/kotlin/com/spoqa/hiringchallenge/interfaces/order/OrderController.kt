@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
 import java.util.UUID
 
 @RestController
@@ -53,14 +54,14 @@ class OrderController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun createOrder(
-        @RequestBody request: CreateOrderRequest,
+        @RequestBody @Valid request: CreateOrderRequest,
     ): OrderDetailResponse =
         orderUseCase.createOrder(request.toCommand()).toResponse()
 
     @PutMapping("/{orderId}")
     fun updateOrder(
         @PathVariable orderId: UUID,
-        @RequestBody request: UpdateOrderRequest,
+        @RequestBody @Valid request: UpdateOrderRequest,
     ): OrderDetailResponse =
         orderUseCase.updateOrder(request.toCommand(orderId)).toResponse()
 
